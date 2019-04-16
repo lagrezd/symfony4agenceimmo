@@ -2,10 +2,13 @@
 namespace App\Controller;
 
 use App\Entity\Property;
+use App\Entity\PropertySearch;
+use App\Form\PropertySearchType;
 use App\Repository\PropertyRepository;
 use Doctrine\Common\Persistence\ObjectManager;
-use Doctrine\ORM\Repository\RepositoryFactory;
+use Knp\Component\Pager\PaginatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -33,35 +36,50 @@ class PropertyController extends AbstractController
 
     /**
      * @Route("/biens", name="property.index")
+     * @param PaginatorInterface $paginator
+     * @param Request $request
      * @return Response
+     * @throws \Doctrine\ORM\NonUniqueResultException
      */
-    public function index(): Response
+    public function index(PaginatorInterface $paginator, Request $request): Response
     {
+
+        $search = new PropertySearch();
+        $form = $this->createForm(PropertySearchType::class, $search);
+        $form->handleRequest($request);
+
+        /**
+         * Récupération bdd
+         */
+        $properties = $paginator->paginate(
+            $this->repository->findAllVisibleQuery($search),
+            $request->query->getInt('page', 1),
+            12
+        );
+        return $this->render("property/index.html.twig", [
+            'current_menu'  => 'properties',
+            'properties'    => $properties,
+            'form'          => $form->createView()
+        ]);
+
         /**
          * Ajout manuel
          *
         $property = new Property();
         $property->setTitle('Mon premier bien')
-            ->setPrice('200000')
-            ->setRooms(4)
-            ->setBedrooms(3)
-            ->setDescription('Une petite description')
-            ->setSurface(60)
-            ->setFloor(4)
-            ->setHeat(1)
-            ->setCity('Bordeaux')
-            ->setAddress('2 ter rue de couhins')
-            ->setPostalCode('33850');
+        ->setPrice('200000')
+        ->setRooms(4)
+        ->setBedrooms(3)
+        ->setDescription('Une petite description')
+        ->setSurface(60)
+        ->setFloor(4)
+        ->setHeat(1)
+        ->setCity('Bordeaux')
+        ->setAddress('2 ter rue de couhins')
+        ->setPostalCode('33850');
         $em = $this->getDoctrine()->getManager();
         $em->persist($property);
         $em->flush();*/
-
-        /**
-         * Récupération bdd
-         */
-        return $this->render("property/index.html.twig", [
-            'current_menu' => 'properties'
-        ]);
     }
 
 
